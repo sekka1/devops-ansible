@@ -1,0 +1,7 @@
+- hosts:
+  - db3.navabit.com
+  - db2.navabit.com
+  - db1.navabit.com
+  gather_facts: False
+  roles:
+    - firewall

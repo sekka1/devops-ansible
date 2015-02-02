@@ -1,0 +1,18 @@
+---
+
+FLEET_API_BASE_PATH: v1-alpha
+FLEET_API_PORT: 49153
+
+coreos_unit_base_name: mongo
+EXPOSED_MONGO_DB_PORT: 27017
+
+mongo_db_data_directory: /home/core/mongo-files/data
+mongo_db_key_file_directory: /home/core/mongo-files
+
+mongo_db_replSet_name: rs0
+
+
+# Logging
+LOG_PATH: "/opt/mongo/logs"
+
+DIRECTORIES_TO_MONITOR: "/var/mongo/logs,/var/log"

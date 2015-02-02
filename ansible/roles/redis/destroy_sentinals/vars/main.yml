@@ -1,0 +1,6 @@
+---
+
+FLEET_API_BASE_PATH: v1-alpha
+FLEET_API_PORT: 49153
+
+service_name: redis-sentinal

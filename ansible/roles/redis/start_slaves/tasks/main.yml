@@ -1,0 +1,11 @@
+---
+
+- name: write the start unit file
+  template: src=run.sh dest=/tmp/coreos_start_{{ coreos_unit_base_name }}.sh mode=0744
+
+- name: Submit start API call
+  command: /tmp/coreos_start_{{ coreos_unit_base_name }}.sh return_content=yes
+  register: command_result
+  failed_when: "'204 No Content' not in command_result.stdout"
+  ignore_errors: yes
+

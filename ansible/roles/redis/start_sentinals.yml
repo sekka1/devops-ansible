@@ -1,0 +1,6 @@
+---
+
+- hosts:
+    - db3_navabit_com
+  roles:
+    - start_sentinals

@@ -1,0 +1,24 @@
+---
+# This playbook flushes existing iptables rules, then adds new ones based on the contents of firewall_whitelist_ip_port_proto
+# in group_vars/all
+- name: flush existing rules
+  sudo: yes
+  command: iptables -F
+
+- name: rule -  setting up ctstates
+  shell: "{{ iptables_path }} -A {{ filter_chain }} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT"
+  sudo: yes
+
+- name: open the desired iptables ports on the specified hosts
+  shell: "{{ iptables_path }} -A {{ filter_chain }} -p {{ item.proto }} -m state -s {{ item.src_ip }} --dport {{ item.dest }} --state NEW,ESTABLISHED -j ACCEPT"
+  sudo: yes
+  with_items:
+    - "{{ firewall_whitelist_ip_port_proto }}"
+
+- name: rule - last rule, dropping everything else
+  shell: "{{ iptables_path }} -A {{ filter_chain }} -j DROP"
+  sudo: yes
+
+#- name: save iptables
+#  command: iptables-save
+#  sudo: yes

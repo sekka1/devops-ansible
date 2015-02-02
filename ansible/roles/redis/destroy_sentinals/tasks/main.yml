@@ -1,0 +1,15 @@
+---
+
+- name: write the start unit file
+  sudo: yes
+  template: src=run.sh dest=/tmp/coreos_destroy_{{ service_name }}.sh owner=root group=root mode=0744
+
+- name: Submit start API call
+  sudo: yes
+  command: /tmp/coreos_destroy_{{ service_name }}.sh return_content=yes
+  register: command_result
+  #failed_when: "'204 No Content' not in command_result.stdout"
+  #ignore_errors: yes
+
+  # TODO: the error checking is not working.  It submits successfully but it cant see the output
+

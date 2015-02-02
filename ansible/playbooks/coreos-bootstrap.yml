@@ -1,0 +1,5 @@
+- hosts:
+  - db*.navabit.com
+  gather_facts: False
+  roles:
+    - defunctzombie.coreos-bootstrap
