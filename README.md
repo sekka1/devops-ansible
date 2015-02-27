@@ -1,11 +1,11 @@
-Navabit DevOps Repository
+DevOps Repository
 ===========================
-This repository holds various DevOps items for Navabit.com
+This repository holds various DevOps items
 
 # Directories
 
 ## ansible
-This is a set of Ansible automation to control the Navabit.com's applications.  Further details on how to use it
+This is a set of Ansible automation to control applications.  Further details on how to use it
 it in this directory
 
 ## hosts
