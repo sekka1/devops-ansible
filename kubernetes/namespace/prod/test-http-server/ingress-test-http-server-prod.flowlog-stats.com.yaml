@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: aa-test-http-server-io
+spec:
+  tls:
+  - hosts:
+    - test-http-server-prod.flowlog-stats.com
+    # This secret must exist beforehand
+    # The cert must also contain the subj-name foo.bar.com
+    # You can create it via:
+    # make keys secret SECRET=/tmp/foobar.json HOST=foo.bar.com NAME=foobar
+    # https://github.com/kubernetes/contrib/tree/master/ingress/controllers/gce/https_example
+    #secretName: test-http-server-devops-test
+  rules:
+  - host: test-http-server-prod.flowlog-stats.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: aa-test-http-server-svc
+          servicePort: 80

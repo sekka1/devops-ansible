@@ -1,0 +1,13 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: lets-encrypt
+spec:
+  rules:
+  - host: butterfly1.flowlog-stats.com
+    http:
+      paths:
+      - path: /.well-known/acme-challenge
+        backend:
+          serviceName: lets-encrypt
+          servicePort: 80

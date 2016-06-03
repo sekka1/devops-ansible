@@ -1,0 +1,31 @@
+---
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: lets-encrypt
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: lets-encrypt
+    spec:
+      containers:
+      - name: lets-encrypt
+        image: garland/butterfly # quay.io/letsencrypt/letsencrypt:latest
+        #command: ["/bin/bash", "-c", "'", "while", "true;", "do", "echo", "hold;", "sleep", "1;", "done", "'"]
+        env:
+          - name: PASSWORD
+            value: password
+          - name: PORT
+            value: "57575"
+        ports:
+          -
+            containerPort: 443
+          -
+            containerPort: 80
+          -
+            containerPort: 57575
+            hostPort: 57575           # Exposing this port so a user can get to it via a web page
+        imagePullPolicy: "Always"
+

@@ -1,0 +1,13 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: butterfly-1
+spec:
+  rules:
+  - host: butterfly-1.flowlog-stats.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: butterfly-1
+          servicePort: 57575

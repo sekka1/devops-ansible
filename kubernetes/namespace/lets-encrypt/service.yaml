@@ -1,0 +1,20 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: lets-encrypt
+  labels:
+    app: lets-encrypt
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+    name: http
+  selector:
+    app: lets-encrypt
+
+#
+# This port is used for opening up the lets-encrypt call back web port so that lets-encrypt can reach back to
+# us to verify that we own the domain.
+#
