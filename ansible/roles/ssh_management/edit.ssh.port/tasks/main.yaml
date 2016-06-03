@@ -1,0 +1,4 @@
+---
+
+- name: editing the ssh port
+  lineinfile: dest=/etc/ssh/sshd_config regexp='^Port \d\d' line='Port {{ NEW_SSH_PORT | default('22') }}'

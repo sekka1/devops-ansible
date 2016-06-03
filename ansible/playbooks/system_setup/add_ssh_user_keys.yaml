@@ -1,0 +1,10 @@
+- hosts: all
+  #become: true
+  #become_user: root
+  vars:
+    - add_users:
+      - name: core
+        key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAAB+wDqcKfssa21MgkasrRpSetMck/1Ht57JwX7ATBZErQgCivsDHyZCPAnb2vqJrwIrOhws63Xtc1UAeAD2ljmI9PaZNlxNdMF0P8vmrv5uFregg1izv3w6N0Z+IAjCuQAqE/ZflVxzK4HHHAg4bjFhL3aY9dBRk2JfdFFbbPhLTWtU27qeqI2qqpPdX+cjcD8pElVhiuYGA+Et7AMByiEnHXf9Xd+iT8mBj0ZQjqjjAeHtyUEhxhsr3DTj4udw1u/sZsCpiBs/cQvdAXlQCawoZk/OSnZDDvan8nPBZygyiK6nPbUzarB/NKHEmwGPUXAw5+kSQAw6Xq7EO6IA9uR0We0Ym4x35PCpJiiio+7O0ntTObEtiGa763TJ7H57ELg1kaaEAdBI4oWK8G+tClStU8Oobf+LU6AqzibkHvNUEmJN9AeoxWHQQQrbKEre+vMi8/OZIxeFbMY178JH2q5XdbIoLZr80X0nrpCIEGHMnhjN8x732oIcnp/bNSSGrplK84UDI6w4eybB10jSRs/Obf2CLhsdHGQaNg8rVwd0g+aCV7sdCeXFRm7IryBhur5O4aGv9EnujiDCS6rrBtuhsKrTZ3DnBIBqZQShRRq/eMMwaggNNMc9E8IVH1SB81Oa5ZHvuRd46g03hpgl3UneQqfE+sgVqfFfj/mUQ==
+        sudo_access: true
+  roles:
+    - ../../roles/ssh_management/add.user.key

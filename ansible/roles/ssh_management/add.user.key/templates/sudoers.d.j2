@@ -1,0 +1,4 @@
+#{{ ansible_managed }}
+{% if item.sudo_access == true %}
+{{ item.name }} ALL=(ALL) NOPASSWD: ALL
+{% endif %}

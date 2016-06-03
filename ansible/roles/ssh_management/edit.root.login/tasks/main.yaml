@@ -1,0 +1,4 @@
+---
+
+- name: editing ssh PermitRootLogin setting
+  lineinfile: dest=/etc/ssh/sshd_config regexp='^PermitRootLogin yes' line='PermitRootLogin {{ ROOT_LOGIN_VALUE | default('no') }}'

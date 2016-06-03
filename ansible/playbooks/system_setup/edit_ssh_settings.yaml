@@ -1,0 +1,11 @@
+- hosts: all
+  become: true
+  become_user: root
+  vars:
+    - NEW_SSH_PORT: "22222"
+    - ROOT_LOGIN_VALUE: "no"
+  roles:
+    - ../../roles/ssh_management/edit.root.login
+    - ../../roles/ssh_management/edit.ssh.port
+    - ../../roles/ssh_management/disable.password.login
+    - ../../roles/ssh_management/ssh.restart

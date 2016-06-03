@@ -1,0 +1,8 @@
+---
+- name: deleting user account
+  user: name={{ item }} state=absent remove=yes
+  with_items: del_users
+
+- name: deleting sudoer file
+  action: file path=/etc/sudoers.d/{{ item }} state=absent
+  with_items: del_users
