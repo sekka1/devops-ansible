@@ -1,5 +1,4 @@
-- hosts:
-  - db*.navabit.com
+- hosts: all
   gather_facts: False
   roles:
-    - defunctzombie.coreos-bootstrap
+    - ../roles/defunctzombie.coreos-bootstrap

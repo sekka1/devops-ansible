@@ -1,6 +1,0 @@
----
-
-- hosts:
-    - db2_navabit_com
-  roles:
-    - start_slaves
