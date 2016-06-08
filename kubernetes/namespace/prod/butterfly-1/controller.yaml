@@ -12,8 +12,15 @@ spec:
     spec:
       containers:
       - name: butterfly
-        image: garland/butterfly # quay.io/letsencrypt/letsencrypt:latest
+        image: garland/butterfly:ubuntu.14.04.4 # quay.io/letsencrypt/letsencrypt:latest
         #command: ["/bin/bash", "-c", "'", "while", "true;", "do", "echo", "hold;", "sleep", "1;", "done", "'"]
+        resources:
+          limits:
+            cpu: 1000m
+            memory: 250Mi
+          requests:
+            cpu: 100m
+            memory: 50Mi
         env:
           - name: PASSWORD
             value: password
