@@ -19,6 +19,6 @@
 
 
 [all:vars]
-ansible_python_interpreter="/root/bin/python"
+#ansible_python_interpreter="/root/bin/python"
 #ansible_python_interpreter="PATH=/home/core/bin:$PATH python"
 #DATADOG_CONTAINER_TAG=coreos-zookeeper
