@@ -1,3 +1,8 @@
+#
+# Bootstrap a new node:
+#    ansible-playbook -i hosts/cloudatcost.yaml ansible/playbooks/coreos-bootstrap.yml --ask-pass
+#
+#
 [master-1]
 #45.62.252.55 ansible_ssh_user=root ansible_port=22 #ansible_become_user=root
 45.62.252.55 ansible_ssh_user=core ansible_port=22222 ansible_become=True ansible_become_user=root
@@ -6,12 +11,14 @@
 45.62.251.59 ansible_ssh_user=core ansible_port=22222 ansible_become=True ansible_become_user=root
 
 [minion-2]
-45.62.251.63 ansible_ssh_user=core ansible_port=22222 ansible_become=True ansible_become_user=root
+64.137.217.97  ansible_ssh_user=core ansible_port=22222 ansible_become=True ansible_become_user=root
+#64.137.217.97  ansible_ssh_user=root ansible_port=22 #ansible_become_user=root
 
 #[host-1:vars]
 #ZOOKEEPER_MYID=1
 
 
 [all:vars]
+ansible_python_interpreter="/root/bin/python"
 #ansible_python_interpreter="PATH=/home/core/bin:$PATH python"
 #DATADOG_CONTAINER_TAG=coreos-zookeeper
