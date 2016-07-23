@@ -17,7 +17,7 @@ spec:
       hostNetwork: true
       terminationGracePeriodSeconds: 60
       containers:
-      - image: gcr.io/google_containers/nginx-ingress-controller:0.7
+      - image: gcr.io/google_containers/nginx-ingress-controller:0.8.1
         name: nginx-ingress-lb
         imagePullPolicy: Always
         livenessProbe:
@@ -48,3 +48,4 @@ spec:
         - --watch-namespace=prod
         - --nginx-configmap=prod/nginx-load-balancer-conf
         - --healthz-port=10251
+        - --v=3
