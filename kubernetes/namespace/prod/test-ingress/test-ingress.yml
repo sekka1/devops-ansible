@@ -1,0 +1,11 @@
+---
+  kind: "Pod"
+  apiVersion: "v1"
+  metadata:
+    name: "clusterapi-tester"
+  spec:
+    containers:
+      -
+        name: "clusterapi"
+        image: "bprashanth/clusterapi-test:0.0"
+        imagePullPolicy: "Always"
