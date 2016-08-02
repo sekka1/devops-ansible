@@ -1,0 +1,27 @@
+#
+# https://github.com/kubernetes/kubernetes/issues/20096#issuecomment-182531030
+#
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: pinger
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: pinger
+    spec:
+      terminationGracePeriodSeconds: 0
+#      nodeSelector:
+#        grunt2: "true"
+      containers:
+      - name: busybox
+        image: "gcr.io/google_containers/busybox:1.24"
+        command:
+          - sh
+          - -c
+          - "ping -c 5 google.com; exit 1"
+        resources:
+          requests:
+            cpu: 1m
