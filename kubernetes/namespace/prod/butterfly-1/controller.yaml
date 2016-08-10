@@ -12,8 +12,13 @@ spec:
     spec:
       containers:
       - name: butterfly
-        image: garland/butterfly:ubuntu.14.04.4 # quay.io/letsencrypt/letsencrypt:latest
+        image: garland/butterfly:latest #garland/butterfly:ubuntu.14.04.4 # quay.io/letsencrypt/letsencrypt:latest
         #command: ["/bin/bash", "-c", "'", "while", "true;", "do", "echo", "hold;", "sleep", "1;", "done", "'"]
+        args:
+          - "--unsecure"
+          - "--host=0.0.0.0"
+          - "--port=57575"
+          - "--login"
         resources:
           limits:
             cpu: 1000m
