@@ -62,7 +62,7 @@ data:
       }
 
     ALERT MemoryUsageHitsLimits
-      IF container_memory_failcnt > 0
+      IF irate(container_memory_failcnt[5m]) > 100
       FOR 1m
       LABELS { severity = "page" }
       ANNOTATIONS {
@@ -92,30 +92,25 @@ data:
     # Disk Alerts
     #
     ALERT DiskWillFillIn8HoursRootPartition
-      IF predict_linear(node_filesystem_free{mountpoint="/rootfs"}[1h], 8*3600) < 0
+      IF
+        predict_linear(node_filesystem_free{mountpoint="/rootfs"}[1h], 4*3600) < 0
       FOR 30m
       LABELS { severity = "page" }
       ANNOTATIONS {
         summary = "Disk space will run out of space in 8 hours",
-        description = "This machine {{ $labels.instance }} will run out of disk space with in 8 hours on partition: /",
+        description = "This machine {{ $labels.instance }} will run out of disk space with in 4 hours on partition: /",
       }
 
     ALERT DiskWillFillIn8HoursDockerPartition
-      IF predict_linear(node_filesystem_free{mountpoint="/rootfs/var/lib/docker"}[1h], 8*3600) < 0
-      FOR 30m
+      IF
+        predict_linear(node_filesystem_free{mountpoint="/rootfs/var/lib/docker"}[1h], 8*3600) < 0
+        and
+        node_filesystem_free / 1024 / 1024 / 1024 < 20
+      FOR 1m
       LABELS { severity = "page" }
       ANNOTATIONS {
         summary = "Disk space will run out of space in 8 hours",
-        description = "This machine {{ $labels.instance }} will run out of disk space with in 8 hours on partition: /rootfs/var/lib/docker",
-      }
-
-    ALERT DiskWillFillIn8HoursWerckerPartition
-      IF predict_linear(node_filesystem_free{mountpoint="/rootfs/var/lib/wercker"}[1h], 8*3600) < 0
-      FOR 30m
-      LABELS { severity = "page" }
-      ANNOTATIONS {
-        summary = "Disk space will run out of space in 8 hours",
-        description = "This machine {{ $labels.instance }} will run out of disk space with in 8 hours on partition: /rootfs/var/lib/wercker",
+        description = "This machine {{ $labels.instance }} will run out of disk space with in 8 hours on partition: /rootfs/var/lib/docker.  Currently total disk space is under 20GB",
       }
 
     #
