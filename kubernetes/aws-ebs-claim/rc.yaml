@@ -1,0 +1,34 @@
+#
+# AWS EBS Volume usage:
+# http://kubernetes.io/docs/user-guide/volumes/#awselasticblockstore
+#
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: aws-ebs-claim
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: aws-ebs-claim
+    spec:
+      containers:
+      - name: aws-ebs-claim
+        image: vungle/test-http-server:1.0
+        ports:
+        - containerPort: 3000
+        volumeMounts:
+        - mountPath: /test-ebs
+          name: test-volume
+
+      # Volumes
+      volumes:
+      - name: test-volume
+        awsElasticBlockStore:
+          volumeID: vol-0935f487c572362bb
+          fsType: ext4
+
+      # Node selector
+      # nodeSelector:
+      #   caste: zzzz
