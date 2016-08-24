@@ -23,7 +23,7 @@ spec:
         livenessProbe:
           httpGet:
             path: /healthz
-            port: 10251 #10249
+            port: 10253 #10249
             scheme: HTTP
           initialDelaySeconds: 30
           timeoutSeconds: 5
@@ -47,5 +47,5 @@ spec:
         - --default-backend-service=prod/default-http-backend
         - --watch-namespace=prod
         - --nginx-configmap=prod/nginx-load-balancer-conf
-        - --healthz-port=10251
+        - --healthz-port=10253
         - --v=3
