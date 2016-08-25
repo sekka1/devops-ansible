@@ -1,0 +1,52 @@
+#
+# https://github.com/kubernetes/contrib/tree/master/ingress/controllers
+#
+# Used in AWS and it will create an ELB pointing these ingress nodes
+# automatically
+#
+# Internet<-->ELB<-->Ingress Nodes<-->Kube pods
+#
+# The real magic is in the kube service "type: LoadBalancer".  This will create
+# a loadbalancer in your cloud.
+#
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ingress-controller
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ingress-controller
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - image: gcr.io/google_containers/nginx-ingress-controller:0.8.2
+        name: nginx-ingress-controller
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10253
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        args:
+        - /nginx-ingress-controller
+        - --default-backend-service=prod/ingress-default-backend
+        - --watch-namespace=prod
+        - --nginx-configmap=prod/nginx-load-balancer-conf
+        #- --healthz-port=10253
+        #- --v=3
