@@ -1,0 +1,137 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-alert-rules
+data:
+  alert.rules: |-
+    ## alert.rules ##
+
+    # Alert for any instance that is unreachable for >5 minutes.
+    # ALERT InstanceDown
+    #   IF up == 0
+    #   FOR 1m
+    #   LABELS { severity = "page" }
+    #   ANNOTATIONS {
+    #     summary = "Instance {{ $labels.instance }} down",
+    #     description = "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 5 minutes.",
+    #   }
+
+    #
+    # CPU Alerts
+    #
+    ALERT HighCPU
+      IF ((sum(node_cpu{mode=~"user|nice|system|irq|softirq|steal|idle|iowait"}) by (instance, job)) - ( sum(node_cpu{mode=~"idle|iowait"}) by (instance,job) )   )   /  (sum(node_cpu{mode=~"user|nice|system|irq|softirq|steal|idle|iowait"}) by (instance, job)) * 100 > 95
+      FOR 10m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "High CPU Usage",
+        description = "This machine {{ $labels.instance }} has really high CPU usage for over 10m",
+      }
+
+    #
+    # Memory Alerts
+    #
+    ALERT LowMemoryPercentFree
+      IF (node_memory_MemTotal - node_memory_MemFree )/ node_memory_MemTotal * 100 < 4
+      FOR 15m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "Low Memory Percent Free",
+        description = "This machine {{ $labels.instance }} memory is lower than 4% free for the last 15m",
+      }
+
+    ALERT LowMemoryTotalMemoryCalculation
+      IF (node_memory_MemFree+node_memory_Buffers+node_memory_Cached{})/1024/1024 < 1000
+      FOR 15m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "Low Memory (total memory calculation)",
+        description = "This machine {{ $labels.instance }} memory is lower than 1GB free for the last 15m.  Calculation of all memory: node_memory_MemFree+node_memory_Buffers+node_memory_Cached"
+      }
+
+    ALERT MemoryUsageHitsLimits
+      IF irate(container_memory_failcnt[5m]) > 100
+      FOR 30m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "Number of memory usage hits limits",
+        description = "On machine {{ $labels.instance }}.  This means that the machine is out of memory or there was a Docker process with a memory limit set that was hit."
+      }
+
+    ALERT MemoryMajorPageFault
+      IF irate(container_memory_failures_total{type="pgmajfault"}[1m]) > 50
+      FOR 15m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "",
+        description = "On machine {{ $labels.instance }}.  Shouldnt be too many. page faults are normal. but major page faults are generally rare. major page faults may involve disk activity and hence should ideally not occur frequently.  A more severe memory latency is a major page fault. These can occur when the system has to synchronize memory buffers with the disk, swap memory pages belonging to other processes, or undertake any other Input/Output activity to free memory. This occurs when the processor references a virtual memory address that has not had a physical page allocated to it. The reference to an empty page causes the processor to execute a fault, and instructs the kernel code to allocate a page and return, all of which increases latency dramatically."
+      }
+
+    ALERT MemoryMinorPageFault
+      IF irate(container_memory_failures_total{type="pgfault"}[1m]) > 200000
+      FOR 15m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "",
+        description = "On machine {{ $labels.instance }}.  A potential source of memory latency is called a minor page fault. They are created when a process attempts to access a portion of memory before it has been initialized. In this case, the system will need to perform some operations to fill the memory maps or other management structures. The severity of a minor page fault can depend on system load and other factors, but they are usually short and have a negligable impact. "
+      }
+
+    #
+    # Disk Alerts
+    #
+    ALERT DiskWillFillIn8HoursRootPartition
+      IF
+        predict_linear(node_filesystem_free{mountpoint="/rootfs"}[1h], 8*3600) < 0
+        and
+        node_filesystem_free{mountpoint="/rootfs"} / 1024 / 1024 / 1024 < .6
+      FOR 30m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "Disk space will run out of space in 8 hours",
+        description = "This machine {{ $labels.instance }} will run out of disk space with in 8 hours on partition: /",
+      }
+
+    ALERT DiskWillFillIn8HoursDockerPartition
+      IF
+        predict_linear(node_filesystem_free{mountpoint="/rootfs/var/lib/docker"}[1h], 8*3600) < 0
+        and
+        node_filesystem_free{mountpoint="/rootfs/var/lib/docker"} / 1024 / 1024 / 1024 < 5
+      FOR 30m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "Disk space will run out of space in 8 hours",
+        description = "This machine {{ $labels.instance }} will run out of disk space with in 8 hours on partition: /rootfs/var/lib/docker.  Currently total disk space is under 5GB",
+      }
+
+
+    #
+    # Network Alerts
+    #
+    ALERT NetworkTransmitActivityIsHigh
+      IF irate(node_network_transmit_bytes{ device="eth0"}[5m]) / 1024 / 1024 > 500
+      FOR 5m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "Network transmit is high for a node ",
+        description = "This machine {{ $labels.instance }} has been transfering over 500MB per seconds for over 5 minutes",
+      }
+    ALERT NetworkReceiveActivityIsHigh
+      IF irate(node_network_receive_bytes{ device="eth0"}[5m]) / 1024 / 1024 > 500
+      FOR 5m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "Network transmit is high for a node ",
+        description = "This machine {{ $labels.instance }} has been receiving over 500MB per seconds for over 5 minutes",
+      }
+
+    #
+    # DNS Lookup failures
+    #
+    ALERT DNSLookupFailureFromPrometheus
+      IF prometheus_dns_sd_lookup_failures_total > 5
+      FOR 1m
+      LABELS { severity = "page" }
+      ANNOTATIONS {
+        summary = "Prometheus reported over 5 DNS lookup failure",
+        description = "The prometheus unit reported that it failed to query the DNS.  Look at the kube-dns to see if it is having any problems",
+      }

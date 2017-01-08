@@ -1,0 +1,47 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: grafana
+spec:
+  serviceName: "grafana"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+
+        - name: "grafana"
+          image: "grafana/grafana:4.0.2"
+          env:
+            - name: GF_SERVER_ROOT_URL
+              value: http://grafana.default.svc.cluster.local:3000
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: secret
+          resources:
+            requests:
+              memory: "250Mi"
+              cpu: "500m"
+            limits:
+              memory: "8Gi"
+              cpu: "4"
+          ports:
+            - containerPort: 3000
+          imagePullPolicy: "Always"
+
+          volumeMounts:
+          # https://github.com/grafana/grafana-docker#grafana-container-with-persistent-storage-recommended
+          - name: data-vol
+            mountPath: /var/lib/grafana
+
+  volumeClaimTemplates:
+  - metadata:
+      name: data-vol
+      annotations:
+        volume.alpha.kubernetes.io/storage-class: anything
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 50Gi

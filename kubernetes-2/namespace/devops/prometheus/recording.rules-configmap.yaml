@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-recording-rules
+data:
+  recording.rules: |-
+    ## recording.rules ##
+
+    # Nodes - CPU
+    node_cpu_record = 100 - (avg by (instance) (irate(node_cpu{kubernetes_name="node-exporter",mode="idle"}[5m])) * 100)
+    node_network_transmit_bytes_record = (avg by (instance) (irate(node_network_transmit_bytes{device="eth0"}[5m]) / 1024 / 1024 ) )
+    node_network_receive_bytes_record = (avg by (instance) (irate(node_network_receive_bytes{device="eth0"}[5m])) / 1024 / 1024 )
+
+    # Pods - Prometheus
+    container_cpu_usage_prometheus = avg(irate(container_cpu_usage_seconds_total{pod_name=~"prometheus.*"}[5m]) * 100) by (pod_name)
+    container_memory_working_set_prometheus = sum (container_memory_working_set_bytes{pod_name=~"prometheus.*"}) by (pod_name)

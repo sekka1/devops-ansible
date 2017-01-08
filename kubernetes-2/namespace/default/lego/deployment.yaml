@@ -1,0 +1,60 @@
+#
+# Doc: https://github.com/kubernetes/contrib/tree/master/ingress/controllers/nginx#automated-certificate-management-with-kube-lego
+#
+# This will watch all ingress for all namespaces
+#
+# The key are the 3 lines in the ingress resource
+#
+#   annotations:
+#     kubernetes.io/tls-acme: "true"            <--- This
+#     kubernetes.io/ingress.class: "nginx"      <--- This
+# spec:
+#   tls:
+#   - hosts:
+#     - echo.example.com
+#     secretName: echoserver-tls               <--- This
+#
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kube-lego
+  namespace: default
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: kube-lego
+    spec:
+      containers:
+      - name: kube-lego
+        image: jetstack/kube-lego:0.1.3
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8080
+        env:
+        - name: LEGO_EMAIL
+          valueFrom:
+            configMapKeyRef:
+              name: kube-lego
+              key: lego.email
+        - name: LEGO_URL
+          valueFrom:
+            configMapKeyRef:
+              name: kube-lego
+              key: lego.url
+        - name: LEGO_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: LEGO_POD_IP
+          valueFrom:
+            fieldRef:
+              fieldPath: status.podIP
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 5
+          timeoutSeconds: 1

@@ -1,0 +1,16 @@
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: kibana-logging
+spec:
+  tls:
+  - hosts:
+    - kibana-preprod-k8s.flowlog-stats.com
+  rules:
+  - host: kibana-preprod-k8s.flowlog-stats.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: kibana-logging
+          servicePort: 5601

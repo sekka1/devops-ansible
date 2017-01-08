@@ -1,0 +1,80 @@
+apiVersion: apps/v1beta1
+kind: StatefulSet
+metadata:
+  name: prometheus-monitoring
+spec:
+  serviceName: "prometheus-monitoring"
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: prometheus-monitoring
+
+    spec:
+      containers:
+
+      # Prometheus server
+      - name: prometheus
+        image: prom/prometheus:v1.4.1
+        args:
+          - '-storage.local.retention=48h'
+          - '-storage.local.path=/home'
+          - '-storage.local.memory-chunks=200000'
+          - '-storage.local.max-chunks-to-persist=1000000'
+          - '-config.file=/etc/prometheus/prometheus.yml'
+          - '-alertmanager.url=http://localhost:9093'
+          - '-web.external-url=http://prometheus-preprod-k8s.flowlog-stats.com'
+        ports:
+        - name: web
+          containerPort: 9090
+        volumeMounts:
+        - name: config-volume-prometheus
+          mountPath: /etc/prometheus
+        - name: config-volume-alert-rules
+          mountPath: /etc/prometheus-rules
+        - name: config-volume-recording-rules
+          mountPath: /etc/prometheus-recording-rules
+        - name: prometheus-data
+          mountPath: /home
+        resources:
+          limits:
+            cpu: 4000m
+            memory: 8000Mi
+          requests:
+            cpu: 250m
+            memory: 250Mi
+
+      #Alert manager
+      - name: alertmanager
+        image: quay.io/prometheus/alertmanager:v0.5.0
+        args:
+          - -config.file=/etc/prometheus/alertmanager.yml
+        volumeMounts:
+        - name: config-volume-alertmanager
+          mountPath: /etc/prometheus
+
+      # Volumens and config maps
+      volumes:
+      - name: config-volume-prometheus
+        configMap:
+          name: prometheus
+      - name: config-volume-alertmanager
+        configMap:
+          name: prometheus-alertmanager
+      - name: config-volume-alert-rules
+        configMap:
+          name: prometheus-alert-rules
+      - name: config-volume-recording-rules
+        configMap:
+          name: prometheus-recording-rules
+
+  volumeClaimTemplates:
+  - metadata:
+      name: prometheus-data
+      annotations:
+        volume.alpha.kubernetes.io/storage-class: anything
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 100Gi

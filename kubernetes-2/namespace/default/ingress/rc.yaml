@@ -1,0 +1,61 @@
+#
+# https://github.com/kubernetes/contrib/tree/master/ingress/controllers
+#
+# Used in AWS and it will create an ELB pointing these ingress nodes
+# automatically
+#
+# Internet<-->ELB<-->Ingress Nodes<-->Kube pods
+#
+# The real magic is in the kube service "type: LoadBalancer".  This will create
+# a loadbalancer in your cloud.
+#
+# You should launch this ingress in the default namespace and it will watch all
+# ingresses in all namespaces.  This way you can have one ingress for the entire
+# cluster.
+#
+---
+
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: ingress-controller
+spec:
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: ingress-controller
+    spec:
+      terminationGracePeriodSeconds: 60
+      containers:
+      - image: gcr.io/google_containers/nginx-ingress-controller:0.8.3
+        name: nginx-ingress-controller
+        imagePullPolicy: Always
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 10253 #10249
+            scheme: HTTP
+          initialDelaySeconds: 30
+          timeoutSeconds: 5
+        env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+        ports:
+        # service for tcp-configmap-activemq on port 61616
+        # - containerPort: 61616
+        #   hostPort: 61616
+        args:
+        - /nginx-ingress-controller
+        - --default-backend-service=$(POD_NAMESPACE)/ingress-default-backend
+        #- --watch-namespace=$(POD_NAMESPACE)
+        - --nginx-configmap=$(POD_NAMESPACE)/nginx-load-balancer-conf
+        - --healthz-port=10253
+        #- --tcp-services-configmap=$(POD_NAMESPACE)/tcp-configmap-activemq
+        #- --v=3
