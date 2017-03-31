@@ -1,0 +1,889 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+
+  "Description" : "A CloudFormation template to add a new Kube node ASG into a running VPC that has a Kube master.",
+
+  "Parameters" : {
+
+    "ApplicationNameTag": {
+      "Description": "An EC2 tag value for the application to tag these node with.",
+      "Type": "String",
+      "Default": "generic"
+    },
+
+    "ASGScalingNotificationARN": {
+      "Description": "The ARN of the notification endpoint for a scaling launch or terminate event",
+      "Type": "String",
+      "Default": "arn:aws:sns:us-east-1:320005014399:kube-prod1-minion-notifications"
+    },
+
+    "KeyName": {
+      "Description": "Name of an existing EC2 KeyPair to enable SSH access to the instance",
+      "Type": "String",
+      "MinLength": "1",
+      "MaxLength": "255",
+      "AllowedPattern": "[\\x20-\\x7E]*",
+      "Default": "aws_automation_1",
+      "ConstraintDescription": "can contain only ASCII characters."
+    },
+
+
+
+    "InstanceTypeCoreOSKubeNodesNodes": {
+      "Description": "Instance type: CoreOS Cluster Nodes",
+      "Type": "String",
+      "Default": "t2.small",
+      "AllowedValues": [
+        "t2.small",
+        "t2.medium",
+        "t2.large",
+        "c3.large",
+        "c3.xlarge",
+        "c3.2xlarge",
+        "c3.4xlarge",
+        "c3.8xlarge",
+        "c4.large",
+        "c4.xlarge",
+        "c4.2xlarge",
+        "c4.4xlarge",
+        "c4.8xlarge",
+        "m3.medium",
+        "m3.large",
+        "m3.xlarge",
+        "m3.2xlarge",
+        "m4.large",
+        "m4.xlarge",
+        "m4.2xlarge",
+        "m1.small",
+        "r3.large",
+        "r3.xlarge",
+        "r3.2xlarge",
+        "r3.4xlarge",
+        "r3.8xlarge",
+        "d2.xlarge",
+        "d2.2xlarge",
+        "d2.4xlarge",
+        "d2.8xlarge"
+      ],
+      "ConstraintDescription": "must be a valid EC2 instance type."
+    },
+    "CoreOSKubeNodesZone1Size": {
+      "Description": "CoreOS Cluster Size Value",
+      "Type": "String",
+      "Default": "1"
+    },
+    "CoreOSKubeNodesChannel": {
+      "Description": "The CoreOS channel to use: AMIMappingCoreOSStable, AMIMappingCoreOSBeta, AMIMappingCoreOSAlpha",
+      "Type": "String",
+      "Default": "AMIMappingCoreOSBeta",
+      "AllowedValues": [
+        "AMIMappingCoreOSStable",
+        "AMIMappingCoreOSBeta",
+        "AMIMappingCoreOSAlpha"
+      ],
+      "ConstraintDescription": "must be a valid channel name"
+    },
+
+
+
+    "AvailabilityZone1": {
+      "Description": "Availability zone id: a, b, c, d, etc",
+      "Type": "String",
+      "Default": "a",
+      "AllowedValues": [
+        "a",
+        "b",
+        "c",
+        "d",
+        "e"
+      ],
+      "ConstraintDescription": "must be a availability zone."
+    },
+
+
+
+    "DockerCfgEmail": {
+      "Description": "Docker authentication for the .dockercfg file",
+      "Type": "String",
+      "Default": "tech@devops-ansible.com"
+    },
+    "DockerCfgAuth": {
+      "Description": "Docker authentication for the .dockercfg file",
+      "Type": "String",
+      "Default": "dnVuZ2xlZGV2OlZ1bmdsZUx1djE="
+    },
+
+
+
+
+    "AWSRegion": {
+      "Description": "Available AWS Regions",
+      "Type": "String",
+      "Default": "us-east-1",
+      "AllowedValues": [
+        "us-east-1",
+        "us-west-1",
+        "us-west-2",
+        "sa-east-1",
+        "ap-southeast-1",
+        "ap-southeast-1",
+        "ap-northeast-1",
+        "eu-west-1"
+      ],
+      "ConstraintDescription": "must be a valid AWS region."
+    },
+    "EnvironmentName": {
+      "Description": "Environment name",
+      "Type": "String",
+      "Default": "development"
+    },
+    "VPCNetwork": {
+      "Description": "Network portion of the VPC /16",
+      "Type": "String",
+      "Default": "172.16",
+      "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})",
+      "ConstraintDescription": "Must be a valid network address for a /16. Example: 10.11"
+    },
+
+
+
+    "CoreOSCentralServicesClusterDiscoveryToken": {
+      "Description": "CoreOS Discovery Token from the main CloudFormation",
+      "Type": "String",
+      "Default": "dd0129c00541fd0259427718046dbcb7"
+    },
+
+    "SecurityGroupKubeNodes": {
+      "Description": "Security group ID for the kube nodes",
+      "Type": "String",
+      "Default": "sg-55029c33"
+    },
+
+    "SubnetWorkerNet1": {
+      "Description": "Subnet to place this ASG",
+      "Type": "String",
+      "Default": "subnet-3577636c"
+    },
+
+    "KubeNodeInstanceProfile": {
+      "Description": "Instance profile:  IAM > Roles > (profile)",
+      "Type": "String",
+      "Default": "arn:aws:iam::320005014399:instance-profile/kube-gar-KubeNodeInstanceProfile-D47A5C3EJSPO"
+    },
+
+
+
+    "ASGLabel": {
+      "Description": "A label for this ASG (no spaces).",
+      "Type": "String",
+      "Default": "ASGNew"
+    },
+
+
+
+    "KubernetesReleaseVersion": {
+      "Description": "Kubernetes version to deploy.  eg:  https://storage.googleapis.com/kubernetes-release/release/v1.1.8/bin/linux/amd64/kube-apiserver",
+      "Type": "String",
+      "Default": "1.2.1"
+    },
+    "NetworkSetupEnvironment": {
+      "Description": "The network-setup-environment to deploy. eg:  https://github.com/kelseyhightower/setup-network-environment/releases/download/1.0.1/setup-network-environment",
+      "Type": "String",
+      "Default": "1.0.1"
+    },
+
+
+    "AWSKeySystemLogs": {
+      "Description": "An AWS key that has access to the logging bucket to write",
+      "Type": "String",
+      "Default": "1234"
+    },
+
+    "AWSSecretSystemLogs": {
+      "Description": "An AWS secret that has access to the logging bucket to write",
+      "Type": "String",
+      "Default": "5678"
+    },
+
+
+    "HekaKafkaDockerContainer": {
+      "Description": "The heka-docker container to use for Kube logging output to Kafka",
+      "Type": "String",
+      "Default": "devops-ansible/heka-kafka:0.4"
+    },
+    "KafkaTopicName": {
+      "Description": "The Kafka topic name to send system logs to",
+      "Type": "String",
+      "Default": "inf-cluster-logs"
+    },
+    "HekaKafkaBrokerList": {
+      "Description": "The heka-docker container needs a list of Kafka brokers to send the logs to",
+      "Type": "String",
+      "Default": "[\"172.16.33.150:9092\", \"172.16.32.35:9092\", \"172.16.31.243:9092\"]"
+    },
+    "LogsAWSBucket": {
+      "Description": "The AWS bucket to send logs to",
+      "Type": "String",
+      "Default": "devops-ansible-kubernetes-logs"
+    },
+    "LogsAWSPrefix": {
+      "Description": "THe AWS prefix to put after the bucket",
+      "Type": "String",
+      "Default": "/kube-prod1/inf-cluster-logs"
+    },
+    "LogsAWSRegion": {
+      "Description": "The AWS region to put the logs into",
+      "Type": "String",
+      "Default": "us-east-1"
+    },
+    "LogsS3TicketInterval": {
+      "Description": "The interval to send logs to S3",
+      "Type": "String",
+      "Default": "600"
+    },
+    "LogsS3Compression": {
+      "Description": "A flag to set compression to true or false",
+      "Type": "String",
+      "Default": "true"
+    },
+    "LogsJournalLogName": {
+      "Description": "The journal log to tail",
+      "Type": "String",
+      "Default": "*"
+    }
+
+  },
+
+
+
+
+  "Mappings": {
+    "AMIMappingUbuntu1404HVMSSD": {
+      "us-east-1": {
+        "AMI": "ami-767a391e"
+      },
+      "us-west-1": {
+        "AMI": "ami-8ebba3cb"
+      },
+      "us-west-2": {
+        "AMI": "ami-1b471c2b"
+      },
+      "eu-west-1": {
+        "AMI": "ami-f5810f82"
+      },
+      "sa-east-1": {
+        "AMI": "ami-55f14e48"
+      },
+      "ap-southeast-1": {
+        "AMI": "ami-36c6ec64"
+      },
+      "ap-southeast-2": {
+        "AMI": "ami-e7eb9fdd"
+      },
+      "ap-northeast-1": {
+        "AMI": "ami-5abca75b"
+      }
+    },
+    "AMIMappingNATInstance": {
+      "us-east-1": {
+        "AMI": "ami-303b1458"
+      },
+      "us-west-2": {
+        "AMI": "ami-69ae8259"
+      },
+      "us-west-1": {
+        "AMI": "ami-7da94839"
+      },
+      "eu-west-1": {
+        "AMI": "ami-6975eb1e"
+      },
+      "sa-east-1": {
+        "AMI": "ami-fbfa41e6"
+      },
+      "ap-southeast-1": {
+        "AMI": "ami-b49dace6"
+      },
+      "ap-southeast-2": {
+        "AMI": "ami-e7ee9edd"
+      },
+      "ap-northeast-1": {
+        "AMI": "ami-03cf3903"
+      }
+    },
+    "AMIMappingCoreOSStable": {
+      "eu-central-1": {
+        "hvm": "ami-cb8d6ba4",
+        "pv": "ami-e18c6a8e"
+      },
+
+      "ap-northeast-1": {
+        "hvm": "ami-962c39f8",
+        "pv": "ami-b62336d8"
+      },
+
+      "us-gov-west-1": {
+        "hvm": "ami-0f3c806e",
+        "pv": "ami-2841fd49"
+      },
+
+      "ap-northeast-2": {
+        "hvm": "ami-03a76e6d",
+        "pv": "ami-92a26bfc"
+      },
+
+      "sa-east-1": {
+        "hvm": "ami-a49915c8",
+        "pv": "ami-2c961a40"
+      },
+
+      "ap-southeast-2": {
+        "hvm": "ami-74dcfc17",
+        "pv": "ami-92dffff1"
+      },
+
+      "ap-southeast-1": {
+        "hvm": "ami-3b8f4558",
+        "pv": "ami-e58e4486"
+      },
+
+      "us-east-1": {
+        "hvm": "ami-2c393546",
+        "pv": "ami-1c3c3076"
+      },
+
+      "us-west-2": {
+        "hvm": "ami-4f4ba32f",
+        "pv": "ami-57779f37"
+      },
+
+      "us-west-1": {
+        "hvm": "ami-52e69432",
+        "pv": "ami-7ce4961c"
+      },
+
+      "eu-west-1": {
+        "hvm": "ami-c346c2b0",
+        "pv": "ami-a344c0d0"
+      }
+    },
+    "AMIMappingCoreOSBeta": {
+      "eu-central-1": {
+        "hvm": "ami-e83ddb87",
+        "pv": "ami-3f3fd950"
+      },
+
+      "ap-northeast-1": {
+        "hvm": "ami-67e9fd09",
+        "pv": "ami-41e3f72f"
+      },
+
+      "us-gov-west-1": {
+        "hvm": "ami-6d38840c",
+        "pv": "ami-6e38840f"
+      },
+
+      "ap-northeast-2": {
+        "hvm": "ami-aca76ec2",
+        "pv": "ami-c8b27ba6"
+      },
+
+      "sa-east-1": {
+        "hvm": "ami-9666eafa",
+        "pv": "ami-ef6ae683"
+      },
+
+      "ap-southeast-2": {
+        "hvm": "ami-9a7d5ef9",
+        "pv": "ami-e07d5e83"
+      },
+
+      "ap-southeast-1": {
+        "hvm": "ami-b8d319db",
+        "pv": "ami-10d11b73"
+      },
+
+      "us-east-1": {
+        "hvm": "ami-cfaba5a5",
+        "pv": "ami-2ba8a641"
+      },
+
+      "us-west-2": {
+        "hvm": "ami-141df674",
+        "pv": "ami-e31cf783"
+      },
+
+      "us-west-1": {
+        "hvm": "ami-6c037e0c",
+        "pv": "ami-64017c04"
+      },
+
+      "eu-west-1": {
+        "hvm": "ami-d149cea2",
+        "pv": "ami-4f4acd3c"
+      }
+
+    },
+    "AMIMappingCoreOSAlpha": {
+      "eu-central-1": {
+        "hvm": "ami-3f05e350",
+        "pv": "ami-b005e3df"
+      },
+
+      "ap-northeast-1": {
+        "hvm": "ami-ca5c4ba4",
+        "pv": "ami-015f486f"
+      },
+
+      "us-gov-west-1": {
+        "hvm": "ami-bb3b87da",
+        "pv": "ami-d23a86b3"
+      },
+
+      "ap-northeast-2": {
+        "hvm": "ami-f5b27b9b",
+        "pv": "ami-5bc00935"
+      },
+
+      "sa-east-1": {
+        "hvm": "ami-ff7af693",
+        "pv": "ami-0c74f860"
+      },
+
+      "ap-southeast-2": {
+        "hvm": "ami-2f486b4c",
+        "pv": "ami-6c496a0f"
+      },
+
+      "ap-southeast-1": {
+        "hvm": "ami-6de72d0e",
+        "pv": "ami-2be02a48"
+      },
+
+      "us-east-1": {
+        "hvm": "ami-07252c6d",
+        "pv": "ami-5b222b31"
+      },
+
+      "us-west-2": {
+        "hvm": "ami-3e719a5e",
+        "pv": "ami-e6709b86"
+      },
+
+      "us-west-1": {
+        "hvm": "ami-e1720f81",
+        "pv": "ami-14710c74"
+      },
+
+      "eu-west-1": {
+        "hvm": "ami-dd0582ae",
+        "pv": "ami-36008745"
+      }
+
+    }
+  },
+
+
+
+
+
+  "Resources" : {
+
+    "LaunchConfigCoreOSKubeNodesZone1" : {
+      "Type" : "AWS::AutoScaling::LaunchConfiguration",
+      "Properties" : {
+        "KeyName" : { "Ref": "KeyName" },
+
+        "ImageId": {
+          "Fn::FindInMap": [
+            {"Ref":"CoreOSKubeNodesChannel"},
+            {
+              "Ref": "AWS::Region"
+            },
+            "hvm"
+          ]
+        },
+
+        "SecurityGroups" : [ { "Ref" : "SecurityGroupKubeNodes" } ],
+        "IamInstanceProfile": { "Ref": "KubeNodeInstanceProfile" },
+        "InstanceType" : {"Ref":"InstanceTypeCoreOSKubeNodesNodes"},
+        "BlockDeviceMappings" : [
+          {
+            "DeviceName" : "/dev/xvdz",
+            "VirtualName" : "ephemeral0"
+          },
+          {
+            "DeviceName" : "/dev/xvdy",
+            "VirtualName" : "ephemeral1"
+          },
+          {
+            "DeviceName" : "/dev/xvdx",
+            "VirtualName" : "ephemeral2"
+          },
+          {
+            "DeviceName" : "/dev/xvdw",
+            "VirtualName" : "ephemeral3"
+          },
+          {
+            "DeviceName" : "/dev/xvdv",
+            "VirtualName" : "ephemeral4"
+          },
+          {
+            "DeviceName" : "/dev/xvdu",
+            "VirtualName" : "ephemeral5"
+          }
+        ],
+        "UserData" : { "Fn::Base64" : { "Fn::Join" : ["",[
+
+          "#cloud-config","\n",
+          "write-files:","\n",
+          "  - path: /opt/bin/wupiao","\n",
+          "    permissions: '0755'","\n",
+          "    content: |","\n",
+          "      #!/bin/bash","\n",
+          "      # [w]ait [u]ntil [p]ort [i]s [a]ctually [o]pen","\n",
+          "      [ -n \"$1\" ] && [ -n \"$2\" ] && while ! curl --output /dev/null \\","\n",
+          "        --silent --head --fail \\","\n",
+          "        http://${1}:${2}; do sleep 1 && echo -n .; done;","\n",
+          "      exit $?","\n",
+          "  - path: /root/.dockercfg","\n",
+          "    owner: core:core","\n",
+          "    permissions: 0644","\n",
+          "    content: |","\n",
+          "      {\"https://index.docker.io/v1/\":{\"auth\":\"",{"Ref":"DockerCfgAuth"},"\",\"email\":\"",{"Ref":"DockerCfgEmail"},"\"}}","\n",
+          "#\n",
+
+          "  - path: /etc/modules-load.d/nf.conf","\n",
+          "    owner: root:root","\n",
+          "    permissions: 0644","\n",
+          "    content: |","\n",
+          "      nf_conntrack","\n",
+
+          "  - path: /etc/sysctl.d/perf_settings.conf","\n",
+          "    owner: root:root","\n",
+          "    permissions: 0644","\n",
+          "    content: |","\n",
+          "      net.ipv4.tcp_tw_reuse=1","\n",
+          "      net.ipv4.ip_local_port_range=2000 65535","\n",
+          "      net.netfilter.nf_conntrack_max=327680","\n",
+          "      net.netfilter.nf_conntrack_tcp_timeout_established=86400","\n",
+          "      net.netfilter.nf_conntrack_generic_timeout=30","\n",
+          "      net.ipv4.tcp_fin_timeout=10","\n",
+          "      net.core.somaxconn=16384","\n",
+          "      net.core.netdev_max_backlog=16384","\n",
+
+          "  - path: /etc/sysctl.d/10-disable-ipv6.conf","\n",
+          "    owner: root:root","\n",
+          "    permissions: 0644","\n",
+          "    content: |","\n",
+          "      net.ipv6.conf.all.disable_ipv6=1","\n",
+
+          "#\n",
+          "coreos:","\n",
+          "  etcd2:","\n",
+          "    listen-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001","\n",
+          "    advertise-client-urls: http://0.0.0.0:2379,http://0.0.0.0:4001","\n",
+          "    #initial-cluster: master=http://",{ "Fn::Join" : [ "", [ { "Ref" : "VPCNetwork" }, ".31.10" ] ] },":2380","\n",
+          "    discovery: https://discovery.etcd.io/",{"Ref":"CoreOSCentralServicesClusterDiscoveryToken"},"\n",
+          "    proxy: on","\n",
+          "  fleet:","\n",
+          "    metadata: \"role=kube-node,zone=",{"Ref":"AvailabilityZone1"},",function=",{"Ref":"ASGLabel"},"\"","\n",
+          "  units:","\n",
+          "    - name: fleet.service","\n",
+          "      command: start","\n",
+          "    - name: flanneld.service","\n",
+          "      command: start","\n",
+          "      drop-ins:","\n",
+          "        - name: 50-network-config.conf","\n",
+          "          content: |","\n",
+          "            [Unit]","\n",
+          "            Requires=etcd2.service","\n",
+          "            [Service]","\n",
+          "            ExecStartPre=/usr/bin/etcdctl set /coreos.com/network/config '{\"Network\":\"10.20.0.0/16\", \"Backend\": {\"Type\": \"vxlan\"}}'","\n",
+
+          "    - name: setup-network-environment.service","\n",
+          "      command: start","\n",
+          "      content: |","\n",
+          "        [Unit]","\n",
+          "        Description=Setup Network Environment","\n",
+          "        Documentation=https://github.com/kelseyhightower/setup-network-environment","\n",
+          "        Requires=network-online.target","\n",
+          "        After=network-online.target","\n",
+
+          "        [Service]","\n",
+          "        ExecStartPre=-/usr/bin/mkdir -p /opt/bin","\n",
+          "        ExecStartPre=/usr/bin/curl -L -o /opt/bin/setup-network-environment -z /opt/bin/setup-network-environment https://github.com/kelseyhightower/setup-network-environment/releases/download/",{"Ref":"NetworkSetupEnvironment"},"/setup-network-environment","\n",
+          "        ExecStartPre=/usr/bin/chmod +x /opt/bin/setup-network-environment","\n",
+          "        ExecStart=/opt/bin/setup-network-environment","\n",
+          "        RemainAfterExit=yes","\n",
+          "        Type=oneshot","\n",
+
+
+          "    - name: docker.service","\n",
+          "      command: start","\n",
+          "      drop-ins:","\n",
+          "        - name: 51-docker-mirror.conf","\n",
+          "          content: |","\n",
+          "            [Unit]","\n",
+          "            Requires=flanneld.service var-lib-docker-perms.service","\n",
+          "            After=flanneld.service var-lib-docker-perms.service","\n",
+          "            [Service]","\n",
+          "            Environment=DOCKER_OPTS='--userland-proxy=false --registry-mirror=http://",{ "Fn::Join" : [ "", [ { "Ref" : "VPCNetwork" }, ".31.10" ] ] },":5000'","\n",
+          "        - name: 30-increase-ulimit.conf","\n",
+          "          content: |","\n",
+          "            [Service]","\n",
+          "            LimitMEMLOCK=infinity","\n",
+          "            LimitNOFILE=100000","\n",
+
+          "    - name: kube-proxy.service","\n",
+          "      command: start","\n",
+          "      content: |","\n",
+          "        [Unit]","\n",
+          "        Description=Kubernetes Proxy","\n",
+          "        Documentation=https://github.com/GoogleCloudPlatform/kubernetes","\n",
+          "        Requires=setup-network-environment.service","\n",
+          "        After=setup-network-environment.service","\n",
+          "        After=docker.service","\n",
+          "        [Service]","\n",
+          "        LimitNOFILE=100000","\n",
+          "        ExecStartPre=/usr/bin/curl -L -o /opt/bin/kube-proxy -z /opt/bin/kube-proxy https://storage.googleapis.com/kubernetes-release/release/v",{"Ref": "KubernetesReleaseVersion"},"/bin/linux/amd64/kube-proxy","\n",
+          "        ExecStartPre=/usr/bin/chmod +x /opt/bin/kube-proxy","\n",
+          "        # wait for kubernetes master to be up and ready","\n",
+          "        ExecStartPre=/opt/bin/wupiao ",{ "Fn::Join" : [ "", [ { "Ref" : "VPCNetwork" }, ".31.10" ] ] }," 8080","\n",
+          "        ExecStart=/opt/bin/kube-proxy \\","\n",
+          "        --master=",{ "Fn::Join" : [ "", [ { "Ref" : "VPCNetwork" }, ".31.10" ] ] },":8080 \\","\n",
+          "        --logtostderr=true \\","\n",
+          "        --proxy-mode=iptables \\","\n",
+          "        Restart=always","\n",
+          "        RestartSec=10","\n",
+
+          "    - name: kube-kubelet.service","\n",
+          "      command: start","\n",
+          "      content: |","\n",
+          "        [Unit]","\n",
+          "        Description=Kubernetes Kubelet","\n",
+          "        Documentation=https://github.com/GoogleCloudPlatform/kubernetes","\n",
+          "        Requires=setup-network-environment.service","\n",
+          "        After=setup-network-environment.service","\n",
+          "        After=docker.service","\n",
+          "        [Service]","\n",
+          "        LimitNOFILE=100000","\n",
+          "        EnvironmentFile=/etc/network-environment","\n",
+          "        ExecStartPre=/usr/bin/curl -L -o /opt/bin/kubelet -z /opt/bin/kubelet https://storage.googleapis.com/kubernetes-release/release/v",{"Ref": "KubernetesReleaseVersion"},"/bin/linux/amd64/kubelet","\n",
+          "        ExecStartPre=/usr/bin/chmod +x /opt/bin/kubelet","\n",
+          "        # wait for kubernetes master to be up and ready","\n",
+          "        ExecStartPre=/opt/bin/wupiao ",{ "Fn::Join" : [ "", [ { "Ref" : "VPCNetwork" }, ".31.10" ] ] }," 8080","\n",
+          "        ExecStart=/opt/bin/kubelet \\","\n",
+          "        --root-dir=\"/var/lib/docker\" \\","\n",
+          "        --address=0.0.0.0 \\","\n",
+          "        --port=10250 \\","\n",
+          "        --api_servers=",{ "Fn::Join" : [ "", [ { "Ref" : "VPCNetwork" }, ".31.10" ] ] },":8080 \\","\n",
+          "        --allow_privileged=true \\","\n",
+          "        --logtostderr=true \\","\n",
+          "        --cloud-provider=\"aws\" \\","\n",
+          "        --healthz_bind_address=0.0.0.0 \\","\n",
+          "        --healthz_port=10248 \\","\n",
+          "        --cluster_dns=10.100.0.10 \\","\n",
+          "        --cluster_domain=cluster.local","\n",
+          "        Restart=always","\n",
+          "        RestartSec=10","\n",
+
+          "    - name: logs-to-kafka.service","\n",
+          "      command: start","\n",
+          "      content: |","\n",
+          "        [Unit]","\n",
+          "        Description=Kubernetes Logs to Kafka","\n",
+          "        Requires=setup-network-environment.service","\n",
+          "        After=setup-network-environment.service","\n",
+          "        After=docker.service","\n",
+          "        [Service]","\n",
+          "        EnvironmentFile=/etc/network-environment","\n",
+          "        ExecStartPre=/usr/bin/docker pull ",{"Ref": "HekaKafkaDockerContainer"},"\n",
+          "        ExecStartPre=-/usr/bin/docker rm logs-to-kafka.service \n",
+          "        ExecStart=/bin/bash -c '/usr/bin/docker run --name logs-to-kafka.service \\","\n",
+          "        -v /var/log/journal:/var/log/journal \\","\n",
+          "        -v /usr/bin/journalctl:/usr/bin/journalctl \\","\n",
+          "        -e KAFKA_TOPIC_NAME=",{"Ref": "KafkaTopicName"}," \\","\n",
+          "        -e KAFKA_NODE_LIST=\\'",{"Ref": "HekaKafkaBrokerList"},"\\' \\","\n",
+          "        -e AWS_KEY=",{"Ref": "AWSKeySystemLogs"},"\\","\n",
+          "        -e AWS_SECRET=",{"Ref": "AWSSecretSystemLogs"},"\\","\n",
+          "        -e AWS_BUCKET=",{"Ref": "LogsAWSBucket"}," \\","\n",
+          "        -e AWS_S3_PREFIX=",{"Ref": "LogsAWSPrefix"},"/${DEFAULT_IPV4} \\","\n",
+          "        -e AWS_S3_REGION=",{"Ref": "LogsAWSRegion"}," \\","\n",
+          "        -e S3_TICKER_INTERVAL=",{"Ref": "LogsS3TicketInterval"}," \\","\n",
+          "        -e S3_COMPRESSION=",{"Ref": "LogsS3Compression"}," \\","\n",
+          "        -e JOURNALCTL_LOG_NAME=",{"Ref": "LogsJournalLogName"}," \\","\n",
+          "        ",{"Ref": "HekaKafkaDockerContainer"}," -config /etc/heka/systemd-logs/logs.toml"," ' \n",
+          "        Restart=always","\n",
+          "        RestartSec=10","\n",
+
+          "    - name: format-ephemeral.service","\n",
+          "      command: start","\n",
+          "      content: |","\n",
+          "        [Unit]","\n",
+          "        Description=Formats the ephemeral drive","\n",
+          "        After=dev-xvdz.device","\n",
+          "        Requires=dev-xvdz.device","\n",
+          "        [Service]","\n",
+          "        Type=oneshot","\n",
+          "        RemainAfterExit=yes","\n",
+          "        ExecStartPre=-/usr/bin/mkdir -p /opt/bin", "\n",
+          "        ExecStartPre=/usr/bin/curl -L -o /opt/bin/format-ephemeral-uvwxyz.sh -z /opt/bin/format-ephemeral-uvwxyz.sh http://devops-ansible-ops.s3.amazonaws.com/cf-scripts/format-ephemeral-uvwxyz.sh", "\n",
+          "        ExecStartPre=/usr/bin/chmod +x /opt/bin/format-ephemeral-uvwxyz.sh", "\n",
+          "        ExecStart=/opt/bin/format-ephemeral-uvwxyz.sh", "\n",
+          "    - name: var-lib-docker.mount","\n",
+          "      command: start","\n",
+          "      content: |","\n",
+          "        [Unit]","\n",
+          "        Description=Mount ephemeral to /var/lib/docker","\n",
+          "        Requires=format-ephemeral.service","\n",
+          "        After=format-ephemeral.service","\n",
+          "        Before=docker.service","\n",
+          "        Before=docker.socket","\n",
+          "        [Mount]","\n",
+          "        What=/dev/md0","\n",
+          "        Where=/var/lib/docker","\n",
+          "        Type=ext4","\n",
+          "    - name: var-lib-docker-perms.service","\n",
+          "      command: start","\n",
+          "      content: |","\n",
+          "        [Unit]","\n",
+          "        Description=Ensure /var/lib/docker is owned by docker","\n",
+          "        Requires=var-lib-docker.mount","\n",
+          "        After=var-lib-docker.mount","\n",
+          "        Before=docker.service","\n",
+          "        Before=docker.socket","\n",
+          "        [Service]","\n",
+          "        Type=oneshot","\n",
+          "        RemainAfterExit=yes","\n",
+          "        ExecStart=/usr/bin/chown docker /var/lib/docker","\n",
+
+          "    - name: reload-sysctl.service","\n",
+          "      command: start","\n",
+          "      content: |","\n",
+          "        [Unit]","\n",
+          "        Description=Reload the sysctl configuration","\n",
+          "        Before=docker.service","\n",
+          "        [Service]","\n",
+          "        Type=oneshot","\n",
+          "        RemainAfterExit=yes","\n",
+          "        ExecStart=/usr/sbin/sysctl --system","\n",
+
+
+          "    - name: systemd-modules-load.service","\n",
+          "      command: restart","\n",
+          "    - name: systemd-sysctl.service","\n",
+          "      command: restart","\n",
+
+          "  update:","\n",
+          "    reboot-strategy: etcd-lock","\n"
+
+        ]
+        ]}
+        }
+      }
+    },
+    "AutoScalingGroupCoreOSKubeNodesZone1" : {
+      "Type" : "AWS::AutoScaling::AutoScalingGroup",
+      "Properties" : {
+        "AvailabilityZones" : [ { "Fn::Join" : [ "", [ { "Ref": "AWSRegion" }, { "Ref": "AvailabilityZone1" } ] ] } ],
+        "LaunchConfigurationName" : { "Ref" : "LaunchConfigCoreOSKubeNodesZone1" },
+        "MinSize" : {"Ref": "CoreOSKubeNodesZone1Size"},
+        "MaxSize" : {"Ref": "CoreOSKubeNodesZone1Size"},
+        "VPCZoneIdentifier" : [ { "Ref" : "SubnetWorkerNet1" } ],
+        "Tags" : [
+          { "Key" : "Name", "Value" : { "Fn::Join" : [ "", [ {"Ref": "EnvironmentName"}, "_kube_node" ] ] }, "PropagateAtLaunch" : "true" },
+          { "Key" : "Network", "Value" : "Public", "PropagateAtLaunch" : "false" },
+          { "Key" : "EnvironmentName", "Value" : {"Ref": "EnvironmentName"}, "PropagateAtLaunch" : "true" },
+          { "Key" : "KubernetesCluster", "Value" : {"Ref" : "AWS::StackName"}, "PropagateAtLaunch" : "true" },
+          { "Key" : "role", "Value" : "coreos-cluster-kube-node", "PropagateAtLaunch" : "true" },
+          { "Key" : "label", "Value" : { "Ref" : "ASGLabel" }, "PropagateAtLaunch" : "true" },
+          { "Key" : "application", "Value" : { "Ref" : "ApplicationNameTag" }, "PropagateAtLaunch" : "true" }
+        ],
+        "NotificationConfigurations" : [
+          {
+            "TopicARN" : { "Ref": "ASGScalingNotificationARN" },
+            "NotificationTypes" : [
+              "autoscaling:EC2_INSTANCE_LAUNCH",
+              "autoscaling:EC2_INSTANCE_LAUNCH_ERROR",
+              "autoscaling:EC2_INSTANCE_TERMINATE",
+              "autoscaling:EC2_INSTANCE_TERMINATE_ERROR"
+            ]
+          }
+        ]
+      },
+      "UpdatePolicy" : {
+        "AutoScalingRollingUpdate" : {
+          "SuspendProcesses" : [
+            "ReplaceUnhealthy"
+          ]
+        }
+      }
+    },
+    "ScalingPolicyUpCoreOSKubeNodesZone1" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "AutoScalingGroupCoreOSKubeNodesZone1" },
+        "Cooldown" : "60",
+        "ScalingAdjustment" : "1"
+      }
+    },
+    "ScalingPolicyDownCoreOSKubeNodesZone1" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "AutoScalingGroupCoreOSKubeNodesZone1" },
+        "Cooldown" : "60",
+        "ScalingAdjustment" : "-1"
+      }
+    },
+    "CPUAlarmHighCoreOSKubeNodesZone1": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Scale-up if CPU > 90% for 10 minutes",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "2",
+        "Threshold": "90",
+        "AlarmActions": [ { "Ref": "ScalingPolicyUpCoreOSKubeNodesZone1" } ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "AutoScalingGroupCoreOSKubeNodesZone1" }
+          }
+        ],
+        "ComparisonOperator": "GreaterThanThreshold"
+      }
+    },
+    "CPUAlarmLowCoreOSKubeNodesZone1": {
+      "Type": "AWS::CloudWatch::Alarm",
+      "Properties": {
+        "AlarmDescription": "Scale-down if CPU < 70% for 10 minutes",
+        "MetricName": "CPUUtilization",
+        "Namespace": "AWS/EC2",
+        "Statistic": "Average",
+        "Period": "300",
+        "EvaluationPeriods": "2",
+        "Threshold": "70",
+        "AlarmActions": [ { "Ref": "ScalingPolicyDownCoreOSKubeNodesZone1" } ],
+        "Dimensions": [
+          {
+            "Name": "AutoScalingGroupName",
+            "Value": { "Ref": "AutoScalingGroupCoreOSKubeNodesZone1" }
+          }
+        ],
+        "ComparisonOperator": "LessThanThreshold"
+      }
+    }
+
+
+
+
+  },
+
+  "Outputs" : {
+
+  }
+}
